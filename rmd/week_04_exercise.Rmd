@@ -43,21 +43,32 @@ In the code section below, **load in the needed packages** (hint: load {tidyvers
 *Pro tip: Use `p_load()` to load in your packages, since it both loads and installs packages as needed.*
 
 ```{r}
-# Load packages 
+# Load packages
 if(!require(pacman)) install.packages("pacman")
-"WRITE_YOUR_CODE_HERE"
+pacman::p_load(
+  tidyverse,
+  here
+)
 ```
 
 Now, **read the dataset into R**. The data frame you import should have 1466 rows and 23 columns. Remember to use the `here()` function to allow your Rmd to use project-relative paths.
 
 ```{r}
 # Import data
-rabies_raw <- "WRITE_YOUR_CODE_HERE"
+rabies_raw <- read_csv(here("data/rabies_dataset.csv"))
 ```
 
 The dataset comes from a study aimed to assess the extent of knowledge and understanding of rabies disease in rural and urban communities of Pakistan.
 
 Explore the data frame with functions like `glimpse()`, `summary()`, `names()`, or `view()`.
+
+```{r}
+# Explore data
+glimpse(rabies_raw)
+summary(rabies_raw)
+names(rabies_raw)
+view(rabies_raw)
+```
 
 Next, perform the following two cleaning tasks on the imported dataset, then store the cleaned dataset in a new object.
 
@@ -67,7 +78,9 @@ Next, perform the following two cleaning tasks on the imported dataset, then sto
 
 ```{r}
 # Clean data
-rabies <- "WRITE_YOUR_CODE_HERE"
+rabies_clean <- rabies_raw %>%
+  select(Respondent_ID, everything()) %>%  # Bring Respondent_ID column to left of data frame
+  select(!Education)  # Remove Education column from data frame
 ```
 
 # 2. Create and Export Data Subsets
@@ -84,10 +97,11 @@ Create and export a data subset containing the variables related to the followin
 
 ```{r}
 # Subset the data
-demog <- "WRITE_YOUR_CODE_HERE"
+rabies_demog <- rabies_clean %>% 
+  select(Age, Gender, Background, contains("Vaccination"))  # Select demographic and vaccination columns
 
 # Export the data
-"WRITE_YOUR_CODE_HERE"
+write_csv(rabies_demog, file = here("outputs/rabies_demog_data.csv"))
 ```
 
 Remember to use the `here()` function to allow your Rmd to use project-relative paths.
@@ -98,10 +112,19 @@ From looking through the metadata file, you will see that some variables corresp
 
 ```{r}
 # Subset the data
-"WRITE_YOUR_CODE_HERE"
+eval_questions <- c("DogBite",
+                    "DogSpread",
+                    "Transmission",
+                    "PreventableVaccination",
+                    "Signs",
+                    "Doctor",
+                    "PreferVaccination")
+
+rabies_knowledge_eval <- rabies_clean %>% 
+  select(eval_questions)  # Select columns with knowledge evaluation questions
 
 # Export the data
-"WRITE_YOUR_CODE_HERE"
+write_csv(rabies_knowledge_eval, file = here("outputs/rabies_knowledge_eval_data.csv"))
 ```
 
 ## **Data Subset 3:** Extract all male adults
@@ -112,10 +135,11 @@ Create and export a data subset containing only records for males aged over 18.
 
 ```{r}
 # Subset the data
-"WRITE_YOUR_CODE_HERE"
+rabies_male_over_18 <- rabies_clean %>% 
+  filter(Gender == 1 & Age > 1)  # Filter rows for males over age 18
 
 # Export the data
-"WRITE_YOUR_CODE_HERE"
+write_csv(rabies_male_over_18, file = here("outputs/rabies_male_over_18_data.csv"))
 ```
 
 ## **Data Subset 4:** Extract at-risk individuals
@@ -130,10 +154,13 @@ Create and export a subset with "at-risk" individuals. We define "at-risk" as pe
 
 ```{r}
 # Subset the data
-"WRITE_YOUR_CODE_HERE"
+rabies_at_risk_respondents <- rabies_clean %>% 
+  filter(Domestication == 1 |
+           Facilities == 2 |
+           AffordableVaccination == 2)  # Filter rows for "at-risk" individuals
 
 # Export the data
-"WRITE_YOUR_CODE_HERE"
+write_csv(rabies_at_risk_respondents, file = here("outputs/rabies_at_risk_respondents_data.csv"))
 ```
 
 ## **Data Subset 5:** Extract respondents with "ideal" knowledge, attitudes and practices (KAPs) towards rabies
@@ -148,10 +175,13 @@ Create and export a data subset that includes just these individuals.
 
 ```{r}
 # Subset the data
-"WRITE_YOUR_CODE_HERE"
+rabies_ideal_respondents <- rabies_clean %>% 
+  filter(DogBite == 1 &
+           Signs == 1 &
+           Doctor == 1)  # Filter rows for respondents with ideal KAPs
 
 # Export the data
-"WRITE_YOUR_CODE_HERE"
+write_csv(rabies_ideal_respondents, file = here("outputs/rabies_ideal_respondents_data.csv"))
 ```
 
 # 3. Submission: Upload your Rmd file to GRAPH Courses website
@@ -264,5 +294,42 @@ write.xlsx(
 Now, try exporting the rabies data subsets you created in the assignment to an Excel workbook. Make sure to write a short description of each subset in the first sheet of the workbook. At the end, you should have 6 sheets in your workbook. Good luck!
 
 ```{r}
-"YOUR CODE FOR THE CHALLENGE QUESTION HERE"
+# Load required packages
+if(!require(pacman)) install.packages("pacman")
+pacman::p_load(tidyverse, here, openxlsx)
+
+# Create table of contents for Excel workbook
+table_of_contents <- data.frame(
+  Sheet_Name = c("Rabies Demog",
+                 "Rabies Knowledge Eval",
+                 "Rabies Male Over 18",
+                 "Rabies At Risk Respondents",
+                 "Rabies Ideal Respondents"),
+  Description = c("This sheet contains a data subset with demographic and vaccination information",
+                  "This sheet contains a data subset with responses to knowledge evaluation questions",
+                  "This sheet contains a data subset for male respondents aged over 18 years",
+                  "This sheet contains a data subset for 'at-risk' respondents",
+                  "This sheet contains a data subset for respondents with ideal KAPs")
+  )
+
+# Set Excel workbook header style
+rabies_header_style <- createStyle(
+  textDecoration = "BOLD", fontColour = "#FFFFFF", fgFill = "#4F80BD"
+  )
+
+# Assign data subsets to sheets in Excel workbook
+rabies_data_subsets <- list("TOC" = table_of_contents,
+                            "Rabies Demog" = rabies_demog,
+                            "Rabies Knowledge Eval" = rabies_knowledge_eval,
+                            "Rabies Male Over 18" = rabies_male_over_18,
+                            "Rabies At Risk Respondents" = rabies_at_risk_respondents,
+                            "Rabies Ideal Respondents" = rabies_ideal_respondents
+                            )
+
+# Create Excel workbook
+write.xlsx(x = rabies_data_subsets,
+           file = here("outputs/rabies_data_subsets.xlsx"),
+           headerStyle = rabies_header_style
+           )
+  
 ```
